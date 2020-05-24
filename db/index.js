@@ -1,8 +1,8 @@
 //db/index.js
 
 const { Client } = require('pg');
-
 const client = new Client('postgres://localhost:5432/juicebox-dev');
+
 
 async function getAllUsers() {
     try{
@@ -94,14 +94,18 @@ async function createPost({
 
 async function updatePost(postId, fields = {}){
 
+    //Get passed in tags, and delete remaining tags to avoid duplication
     const { tags } = fields;
     delete fields.tags;
-
+    
+    //Format setString into a string format that can be passed into PSQL ('"field1"=$1, "field2"=$2', etc.)
     const setString = Object.keys(fields)
     .map((key, index) => `"${ key }"=$${ index + 1 }`
     ).join(', ');
     
     try{
+
+        //If the setString contains a field to be updated, attempt to update it and return result
         if (setString.length > 0) {
             await client.query(`
             UPDATE posts
@@ -112,10 +116,12 @@ async function updatePost(postId, fields = {}){
             );
         }
 
+        //If no tags are passed in to be updated, return the updated post
         if (tags === undefined) {
             return await getPostById(postId);
         }
 
+        //If tags are passed to be updated, create those tags, and create a string of tags that can be read by PSQL, and update post_tags database appropriately
         const tagList = await createTags(tags);
         const tagListIdString = tagList.map((tag) => `${ tag.id }`).join(', ');
         
@@ -126,6 +132,7 @@ async function updatePost(postId, fields = {}){
         and "postId"=$1;
         `, [postId]);
         
+        //add tags to post object and return post object
         await addTagsToPost(postId, tagList);
         
         return await getPostById(postId);
@@ -148,7 +155,6 @@ async function getAllPosts() {
             post => getPostById( post.id )
         ));
 
-        console.log('getAllPosts returns posts = ', posts);
         return posts;
     }
     catch(err) {
@@ -276,25 +282,37 @@ async function addTagsToPost(postId, tagList) {
 async function getPostById(postId) {
     try{
 
+        //Retrieve and store post associated with the passed in postId
         const { rows: [post] } = await client.query(`
             SELECT *
             FROM posts
             WHERE id=$1;
         `, [postId]);
 
+        // If no such post exists, notify user
+        if(!post) {
+            throw {
+                name: "PostNotFoundError",
+                message: "Could not find a post with that postId"
+            };
+        }
+        
+        //Retrieve and store tags associated with the passed in postId
         const { rows: tags } = await client.query(`
             SELECT tags.*
             FROM tags
             JOIN post_tags ON tags.id=post_tags."tagId"
             WHERE post_tags."postId"=$1;
         `, [postId]);
-
+        
+        //retrieve and store author of post retrieved earlier
         const { rows: [author] } = await client.query(`
             SELECT id, username, name, location
             FROM users
             WHERE id=$1
         `, [post.authorId]);
 
+        //Re-construct post object, replacing authorId with author, and adding tags, then return it
         post.tags = tags;
         post.author = author;
 
@@ -308,8 +326,10 @@ async function getPostById(postId) {
     }
 }
 
+
 async function getPostsByTagName(tagName) {
     try {
+
         const { rows: postIds } = await client.query(`
         SELECT posts.id
         FROM posts
@@ -328,7 +348,7 @@ async function getPostsByTagName(tagName) {
 }
 
 
-    async function getAllTags() {
+async function getAllTags() {
     try{
         const { rows: tags } = await client.query(`
             SELECT *
