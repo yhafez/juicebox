@@ -343,6 +343,21 @@ async function getPostsByTagName(tagName) {
 }
 
 
+async function getUserByUsername(username) {
+    try{
+        const { rows: [user] } = await client.query(`
+            SELECT *
+            FROM users
+            WHERE username=$1
+        `, [username]);
+        return user;
+    }
+    catch(err) {
+        throw err;
+    }
+}
+
+
 module.exports = {
     client,
     getAllUsers,
@@ -358,6 +373,7 @@ module.exports = {
     addTagsToPost,
     getPostById,
     getPostsByTagName,
-    getAllTags
+    getAllTags,
+    getUserByUsername
 }
   
