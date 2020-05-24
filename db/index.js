@@ -1,9 +1,18 @@
 //db/index.js
 
+//Functions for accessing, creating, modifying, and deleting database items
+
+/*---------------------------------------------------------------------------- Required packages ----------------------------------------------------------------------------*/
+
+
 const { Client } = require('pg');
 const client = new Client('postgres://localhost:5432/juicebox-dev');
 
 
+/*------------------------------------------------------------------------------- Functions -------------------------------------------------------------------------------*/
+
+
+//Return all users currently stored in the user table in the database
 async function getAllUsers() {
     try{
         const { rows } = await client.query(`
@@ -18,6 +27,7 @@ async function getAllUsers() {
 }
 
 
+//Add a new user to the user table
 async function createUser({ 
     username,
     password,
@@ -41,17 +51,20 @@ async function createUser({
 }
 
 
+//Modify stored information about a user in the user table 
 async function updateUser(id, fields = {}) {
-    //build the set string
+
+    //Format setString into a string format that can be passed into PSQL ('"field1"=$1, "field2"=$2', etc.)
     const setString = Object.keys(fields).map(
         (key, index) => `"${ key }"=$${ index + 1 }`
     ).join(', ');
 
-    //return early if this is called without fields
+    //Return early if this function is called without any fields to update
     if (setString.length === 0) {
         return;
     }
 
+    //Use setString to update user information in database and return updated user object
     try {
         const { rows: [user] } = await client.query(`
             UPDATE users
@@ -60,7 +73,6 @@ async function updateUser(id, fields = {}) {
             RETURNING *;
         `, Object.values(fields));
 
-        console.log(user);
         return user;
     }
     catch (err) {
@@ -69,6 +81,7 @@ async function updateUser(id, fields = {}) {
 }
 
 
+//Create a new post and add a new post row in posts table
 async function createPost({
     authorId,
     title,
@@ -92,6 +105,7 @@ async function createPost({
 }
 
 
+//Modify stored information about a post in the posts table
 async function updatePost(postId, fields = {}){
 
     //Get passed in tags, and delete remaining tags to avoid duplication
@@ -144,6 +158,7 @@ async function updatePost(postId, fields = {}){
 }
 
 
+//Return all posts currently in the posts table in the database
 async function getAllPosts() {
     try{
         const { rows: postIds } = await client.query(`
@@ -163,6 +178,7 @@ async function getAllPosts() {
 }
 
 
+//Return all the posts by the user with the specified userId
 async function getPostsByUser(userId){
     try{
         const  { rows: postIds }  = await client.query(`
@@ -170,7 +186,6 @@ async function getPostsByUser(userId){
             WHERE "authorId"=${ userId };
         `);
         
-        console.log('postIds is: ', postIds);
         const posts = await Promise.all(postIds.map(
             post => getPostById( post.id )
         ));
@@ -183,6 +198,7 @@ async function getPostsByUser(userId){
 }
 
 
+//Return the user object of the user with the specified userId
 async function getUserById(userId){
     try{
 
@@ -207,6 +223,7 @@ async function getUserById(userId){
 }
 
 
+//Create a new tag in the tags table in the database
 async function createTags(tagList){
     
     if (tagList.length === 0) {
@@ -245,6 +262,7 @@ async function createTags(tagList){
 }
 
 
+//Create a new post tag in the post_tags table in the database
 async function createPostTag(postId, tagId) {
 
     try{
@@ -261,6 +279,7 @@ async function createPostTag(postId, tagId) {
 }
 
 
+//Add tags to post object
 async function addTagsToPost(postId, tagList) {
     
     try {
@@ -279,6 +298,7 @@ async function addTagsToPost(postId, tagList) {
 }
 
 
+//Return the post object of the post with the specified postId
 async function getPostById(postId) {
     try{
 
@@ -307,7 +327,7 @@ async function getPostById(postId) {
         
         //retrieve and store author of post retrieved earlier
         const { rows: [author] } = await client.query(`
-            SELECT id, username, name, location
+            SELECT id, username, name, location, active
             FROM users
             WHERE id=$1
         `, [post.authorId]);
@@ -327,6 +347,7 @@ async function getPostById(postId) {
 }
 
 
+//Return all posts tagged with the specified tagname
 async function getPostsByTagName(tagName) {
     try {
 
@@ -348,6 +369,7 @@ async function getPostsByTagName(tagName) {
 }
 
 
+//Return all tags currently stored in the tags table
 async function getAllTags() {
     try{
         const { rows: tags } = await client.query(`
@@ -363,6 +385,7 @@ async function getAllTags() {
 }
 
 
+//Return user object of user with the specified username
 async function getUserByUsername(username) {
     try{
         const { rows: [user] } = await client.query(`
@@ -378,6 +401,7 @@ async function getUserByUsername(username) {
 }
 
 
+//Export functions
 module.exports = {
     client,
     getAllUsers,

@@ -1,4 +1,10 @@
 // api/index.js
+
+//Main entry point to API. Routes requests appropriately and sets user if token is sent in header.
+
+/*---------------------------------------------------------------------------- Required packages ----------------------------------------------------------------------------*/
+
+
 require('dotenv').config();
 
 const express = require('express');
@@ -7,6 +13,10 @@ const apiRouter = express.Router();
 const jwt = require('jsonwebtoken');
 const { getUserById } = require('../db');
 const { JWT_SECRET } = process.env;
+
+
+/*------------------------------------------------------------------------------- Middleware -------------------------------------------------------------------------------*/
+
 
 //Set 'req.user' if possible
 apiRouter.use(async (req, res, next) => {
@@ -41,6 +51,8 @@ apiRouter.use(async (req, res, next) => {
     }
 });
 
+
+//Log that user is set in server terminal
 apiRouter.use((req, res, next) => {
     if(req.user) {
         console.log('User is set: ', req.user);
@@ -49,18 +61,26 @@ apiRouter.use((req, res, next) => {
 });
 
 
-// Routers
+/*--------------------------------------------------------------------------------- Routers ---------------------------------------------------------------------------------*/
+
+
 const usersRouter = require('./users');
 apiRouter.use('/users', usersRouter);
+
 
 const postsRouter = require('./posts');
 apiRouter.use('/posts', postsRouter);
 
+
 const tagsRouter = require('./tags');
 apiRouter.use('/tags', tagsRouter);
 
+
 apiRouter.use((error, req, res, next) => {
+    //Return caught errors to user
     res.send(error);
 })
 
+
+//Export router
 module.exports = apiRouter;

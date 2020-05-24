@@ -1,5 +1,10 @@
 //db/seed.js
 
+//Functions for initializing and testing database
+
+/*----------------------------------------------------------------------------Required packages----------------------------------------------------------------------------*/
+
+
 const {
     client,
     getAllUsers,
@@ -17,6 +22,11 @@ const {
     getPostsByTagName
 } = require('./index');
 
+
+/*------------------------------------------------------------------------------- Functions -------------------------------------------------------------------------------*/
+
+
+//Database functions tests
 async function testDB() {
 
     try {
@@ -67,6 +77,8 @@ async function testDB() {
     }
 }
 
+
+//Delete tables if they exist when re-initializing
 async function dropTables() {
     try {
         console.log('dropping tables...')
@@ -84,9 +96,10 @@ async function dropTables() {
     }
 }
 
+
+//Create users, posts, tags, and post_tags tables
 async function createTables() {
     try {
-        console.log('start 1');
         await client.query(`
             CREATE TABLE users (
                 id SERIAL PRIMARY KEY,
@@ -97,8 +110,6 @@ async function createTables() {
                 active BOOLEAN DEFAULT true
             );
         `);
-        console.log('end 1');
-        console.log('start 2');
         await client.query(`
             CREATE TABLE posts (
                 id SERIAL PRIMARY KEY,
@@ -108,16 +119,12 @@ async function createTables() {
                 active BOOLEAN DEFAULT true
             );
         `);
-        console.log('end 2');
-        console.log('start 3');
         await client.query(`
             CREATE TABLE  tags (
                 id SERIAL PRIMARY KEY,
                 name VARCHAR(255) UNIQUE NOT NULL
             );
         `);
-        console.log('end 3');
-        console.log('start 4');
         await client.query(`
             CREATE TABLE post_tags(
                 "postId" INTEGER REFERENCES posts(id),
@@ -125,7 +132,6 @@ async function createTables() {
                 UNIQUE ("postId", "tagId")
             );
         `);
-        console.log('end 4'); 
         
     }
     catch (err) {
@@ -135,6 +141,7 @@ async function createTables() {
 }
 
 
+//Populate user table with initial user data
 async function createInitialUsers() {
 
     try{
@@ -150,6 +157,7 @@ async function createInitialUsers() {
 }
 
 
+//Populate posts table with initial posts
 async function createInitialPosts() {
     try {
         const [albert, sandra, glamgal] = await getAllUsers();
@@ -184,6 +192,7 @@ async function createInitialPosts() {
 }
 
 
+//Populate tags and post_tags table with initial tags data
 async function createInitialTags() {
 
     try{
@@ -196,6 +205,7 @@ async function createInitialTags() {
             '#youcandoanything',
             '#catmandoeverything'
         ]);
+
 
         const [postOne, postTwo, postThree] = await getAllPosts();
 
@@ -212,6 +222,8 @@ async function createInitialTags() {
     }
 }
 
+
+//Call above functions to re-initialize database
 async function rebuildDB() {
     try {
         client.connect();
@@ -220,6 +232,7 @@ async function rebuildDB() {
         await createTables();
         await createInitialUsers();
         await createInitialPosts();
+        await createInitialTags();
     }
     catch (err) {
         console.log('Error rebuilding database! Error: ', err);
